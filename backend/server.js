@@ -94,9 +94,25 @@ app.use("/api/sessions", sessionRouter)
 app.use("/api/parse-file", parserRouter)
 app.use("/api/generate", limiter, aiRouter)
 
+// Serve static frontend build files if they exist (Production mode)
+const distPath = path.join(__dirname, "../dist")
+app.use(express.static(distPath))
+
 // Base Health Check
 app.get("/api/health", (req, res) => {
   res.json({ status: "healthy", timestamp: new Date() })
+})
+
+// Catch-all route to serve index.html for React SPA routing
+app.get("*", (req, res, next) => {
+  if (req.path.startsWith("/api")) {
+    return next()
+  }
+  res.sendFile(path.join(distPath, "index.html"), (err) => {
+    if (err) {
+      res.status(404).send("Aether Study API is online. (Static frontend files are not compiled yet, run 'npm run build' first).")
+    }
+  })
 })
 
 // Global Error Handler
