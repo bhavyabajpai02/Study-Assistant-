@@ -1,0 +1,42 @@
+{
+  "name": "study-assistant",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev:frontend": "vite",
+    "dev:backend": "node backend/server.js",
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "build:frontend": "vite build",
+    "build:backend": "npm install --prefix backend",
+    "build": "npm run build:frontend && npm run build:backend"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.1.1",
+    "framer-motion": "^11.15.0",
+    "react-hook-form": "^7.54.2",
+    "axios": "^1.7.9",
+    "zod": "^3.24.1",
+    "lucide-react": "^0.468.0",
+    "react-hot-toast": "^2.4.1",
+    "three": "^0.171.0",
+    "@react-three/fiber": "^9.0.0-alpha.8",
+    "@react-three/drei": "^10.0.0-alpha.5",
+    "canvas-confetti": "^1.9.3",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.5.5"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/three": "^0.170.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.16",
+    "vite": "^6.0.5",
+    "concurrently": "^9.1.0"
+  }
+}
