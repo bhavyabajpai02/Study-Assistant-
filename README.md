@@ -4,6 +4,8 @@ Aether Study is a production-grade AI-powered study companion. It transforms uns
 
 Designed with a premium dark-mode glassmorphic interface inspired by Vercel, Linear, and OpenAI, Aether Study utilizes a custom high-performance WebGL pipeline (Three.js) for landing page visual features, cursor tracking, and 3D coordinate-projected topic networks.
 
+🚀 **Live Production Link**: [https://aether-study-assistant.onrender.com/](https://aether-study-assistant.onrender.com/)
+
 ---
 
 ## Architecture Overview
@@ -12,7 +14,7 @@ Designed with a premium dark-mode glassmorphic interface inspired by Vercel, Lin
 graph TD
     User([User]) -->|Input Lecture Notes| React[React 19 SPA]
     React -->|POST /api/generate| Express[Express Node Backend]
-    Express -->|Generates prompt & JSON Schema| Gemini[Gemini API - gemini-1.5-flash]
+    Express -->|Generates prompt & JSON Schema| Gemini[Gemini API - gemini-3.1-flash-lite]
     Gemini -->|Strict JSON Response| Express
     Express -->|Zod validated payload| React
     React -->|Zod validation + Recovery| ParsedObj[Parsed Course State]
