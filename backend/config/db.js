@@ -9,8 +9,8 @@ export const connectDB = async () => {
   }
 
   try {
-    const conn = await mongoose.connect(uri)
-    console.log(`📡 MongoDB Connected: ${conn.connection.host}`)
+    await mongoose.connect(uri)
+    console.log("✓ MongoDB Connected")
     
     // Seed demo user
     await seedDemoUser()

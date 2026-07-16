@@ -83,6 +83,7 @@ Aether Study uses a **monorepo-inspired workspace layout**:
 ### Prerequisites
 - Node.js (v18 or higher)
 - npm (v9 or higher)
+- MongoDB (local or Atlas)
 
 ### Setup Instructions
 
@@ -101,22 +102,30 @@ Aether Study uses a **monorepo-inspired workspace layout**:
    npm install --prefix backend
    ```
 
-4. **Configure your API Key**:
-   - Open `backend/.env` (created for you automatically).
-   - Insert your Google Gemini API Key:
+4. **Configure your environment variables**:
+   - Create a copy of `backend/.env.example` named `backend/.env`.
+   - Add your credentials:
      ```env
      PORT=5000
-     GEMINI_API_KEY=your_actual_gemini_key_here
+     GEMINI_API_KEY=YOUR_GEMINI_API_KEY
+     JWT_SECRET=YOUR_SECURE_JWT_SECRET
+     MONGODB_URI=YOUR_MONGODB_ATLAS_URI_OR_LOCAL_FALLBACK
      ```
-   - *Note: You can obtain a free Gemini API key from [Google AI Studio](https://aistudio.google.com/).*
+   - *Note: Get a free Gemini API key from [Google AI Studio](https://aistudio.google.com/).*
 
 5. **Start the workspace**:
-   - Run both the React frontend and Node backend concurrently with a single command:
+   - Run both the React frontend and Node backend concurrently with:
      ```bash
      npm run dev
      ```
-   - The React app will start on [http://localhost:3000](http://localhost:3000).
-   - The Express backend will run on [http://localhost:5000](http://localhost:5000).
+   - The React app runs on [http://localhost:3000](http://localhost:3000).
+   - The Express backend runs on [http://localhost:5000](http://localhost:5000).
+
+6. **Verify AI Connection**:
+   - The backend terminal logs will check and output:
+     `✓ MONGODB_URI Configured` (and database connection status)
+     `✓ Gemini Configured` (confirming key was loaded successfully)
+     `✓ JWT Ready`
 
 ---
 
@@ -126,6 +135,8 @@ Aether Study uses a **monorepo-inspired workspace layout**:
 |---|---|---|---|
 | `PORT` | The port the Express backend server listens on. | `5000` | No |
 | `GEMINI_API_KEY` | Google Gemini access credentials for AI synthesis. | - | **Yes** (to enable generation) |
+| `JWT_SECRET` | Secret token used to sign JWT authentication sessions. | `demo_secret_token_123` | **Yes** (for login protection) |
+| `MONGODB_URI` | Connection URI to MongoDB Atlas or local MongoDB database. | `mongodb://localhost:27017/study-assistant` | **Yes** (for persistent storage) |
 
 ---
 

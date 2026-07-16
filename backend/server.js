@@ -3,36 +3,64 @@ import cors from "cors"
 import helmet from "helmet"
 import rateLimit from "express-rate-limit"
 import dotenv from "dotenv"
+import path from "path"
+import { fileURLToPath } from "url"
 import mongoose from "mongoose"
 import { connectDB } from "./config/db.js"
 import { aiRouter } from "./routes/aiRoutes.js"
 import { authRouter } from "./routes/authRoutes.js"
 import { sessionRouter } from "./routes/sessionRoutes.js"
 import { parserRouter } from "./routes/parserRoutes.js"
+import { isGeminiConfigured } from "./services/geminiService.js"
 
-// Load env variables
-dotenv.config()
+// Resolve absolute path to .env in backend directory
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+dotenv.config({ path: path.join(__dirname, ".env") })
+
+const PORT = process.env.PORT || 5000
+
+// Validate required environment variables on startup
+const requiredEnvVars = ["PORT", "GEMINI_API_KEY", "JWT_SECRET", "MONGODB_URI"]
+const missingVars = []
+
+requiredEnvVars.forEach(v => {
+  if (!process.env[v] || process.env[v].trim() === "") {
+    missingVars.push(v)
+  }
+})
+
+if (missingVars.length > 0) {
+  console.log("\n==================================================")
+  console.log("⚠️  Startup Environment Variable Check Failed!")
+  missingVars.forEach(v => {
+    console.log(`❌ Missing Environment Variable: ${v}`)
+    if (v === "GEMINI_API_KEY") {
+      console.log("   👉 Action: Please create backend/.env and add your Gemini API key: GEMINI_API_KEY=your_key")
+    } else if (v === "JWT_SECRET") {
+      console.log("   👉 Action: Please define a JWT signing secret in backend/.env: JWT_SECRET=random_secret_string")
+    } else if (v === "MONGODB_URI") {
+      console.log("   👉 Action: Please define your MongoDB URI in backend/.env: MONGODB_URI=mongodb://...")
+    } else if (v === "PORT") {
+      console.log("   👉 Action: Please define server listening port: PORT=5000")
+    }
+  })
+  console.log("==================================================\n")
+}
+
+const app = express()
 
 // Connect to MongoDB Database
 connectDB()
 
-const app = express()
-const PORT = process.env.PORT || 5000
+// Enable security headers
+app.use(helmet())
 
-// Security configurations
-app.use(helmet({
-  contentSecurityPolicy: false, // Let R3F or three external files loads correctly
-}))
+// Configure CORS
+app.use(cors())
 
-// CORS configuration (allow requests from the frontend development server)
-app.use(cors({
-  origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
-  methods: ["GET", "POST", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true
-}))
-
-app.use(express.json({ limit: "5mb" })) // Support large text uploads
+// Parse JSON request body
+app.use(express.json())
 
 // Rate Limiting (to protect the AI generation endpoints from abuse)
 const limiter = rateLimit({
@@ -82,4 +110,10 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`🚀 Aether Study Backend running on http://localhost:${PORT}`)
+  console.log("\n--- Service Health Status ---")
+  console.log(process.env.MONGODB_URI ? "✓ MONGODB_URI Configured" : "⚠️ MONGODB_URI Missing (Connecting local fallback...)")
+  console.log(isGeminiConfigured() ? "✓ Gemini Configured" : "⚠️ Gemini API Key Missing (AI services disabled)")
+  console.log(process.env.JWT_SECRET ? "✓ JWT Ready" : "❌ JWT Secret Missing (Authentication services will fail)")
+  console.log("✓ Server Running")
+  console.log("-------------------------------\n")
 })
