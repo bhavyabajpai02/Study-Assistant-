@@ -28,7 +28,8 @@ import {
   Save,
   Star,
   Printer,
-  ChevronDown
+  ChevronDown,
+  Trophy
 } from "lucide-react"
 
 export default function DashboardPage() {

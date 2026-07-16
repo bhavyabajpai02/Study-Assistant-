@@ -30,16 +30,30 @@ function repairSchemaDefaults(data, sourceContent = "") {
   if (!Array.isArray(repaired.flashcards) || repaired.flashcards.length === 0) {
     repaired.flashcards = [
       {
+        id: `fc_${Math.random().toString(36).substr(2, 9)}_${Date.now()}_0`,
         front: "Core Concept",
         back: "Please review the summary for the detailed overview of this topic.",
-        category: "General"
+        topic: "General",
+        difficulty: "Medium",
+        tags: [],
+        isLearned: false,
+        forRevision: false,
+        bookmarked: false,
+        favorite: false
       }
     ]
   } else {
     repaired.flashcards = repaired.flashcards.map((f, i) => ({
+      id: f.id || `fc_${Math.random().toString(36).substr(2, 9)}_${Date.now()}_${i}`,
       front: f.front || `Flashcard Question ${i + 1}`,
       back: f.back || `Flashcard Answer ${i + 1}`,
-      category: f.category || "General"
+      topic: f.topic || f.category || "General",
+      difficulty: f.difficulty || "Medium",
+      tags: Array.isArray(f.tags) ? f.tags : [],
+      isLearned: f.isLearned || false,
+      forRevision: f.forRevision || false,
+      bookmarked: f.bookmarked || false,
+      favorite: f.favorite || false
     }))
   }
 
