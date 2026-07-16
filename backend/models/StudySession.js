@@ -92,6 +92,14 @@ const studySessionSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  originalNotes: {
+    type: String,
+    default: ""
+  },
+  generationSettings: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
+  },
   estimatedReadingTime: {
     type: String,
     default: "5 min"

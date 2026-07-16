@@ -35,7 +35,9 @@ export const createSession = async (req, res) => {
     keyPoints,
     revisionTips,
     learningObjectives,
-    recommendedRevisionDate
+    recommendedRevisionDate,
+    originalNotes,
+    generationSettings
   } = req.body
 
   if (!title || !summary) {
@@ -54,7 +56,9 @@ export const createSession = async (req, res) => {
       keyPoints: keyPoints || [],
       revisionTips: revisionTips || [],
       learningObjectives: learningObjectives || [],
-      recommendedRevisionDate: recommendedRevisionDate || ""
+      recommendedRevisionDate: recommendedRevisionDate || "",
+      originalNotes: originalNotes || "",
+      generationSettings: generationSettings || {}
     })
 
     const obj = session.toObject()
@@ -111,7 +115,9 @@ export const updateSession = async (req, res) => {
       "learningObjectives",
       "recommendedRevisionDate",
       "isFavorite",
-      "quizScores"
+      "quizScores",
+      "originalNotes",
+      "generationSettings"
     ]
 
     fieldsToUpdate.forEach(field => {

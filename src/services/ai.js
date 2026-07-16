@@ -111,7 +111,7 @@ function repairSchemaDefaults(data, sourceContent = "") {
   return repaired
 }
 
-export const generateStudyMaterial = async (content) => {
+export const generateStudyMaterial = async (content, options = {}) => {
   // Cancel any active running request
   if (activeController) {
     activeController.abort()
@@ -120,7 +120,7 @@ export const generateStudyMaterial = async (content) => {
   activeController = new AbortController()
 
   try {
-    const response = await axios.post("/api/generate", { content }, {
+    const response = await axios.post("/api/generate", { content, options }, {
       signal: activeController.signal,
       headers: {
         "Content-Type": "application/json"

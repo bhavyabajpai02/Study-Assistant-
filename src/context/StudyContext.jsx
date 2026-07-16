@@ -233,7 +233,7 @@ export const StudyProvider = ({ children }) => {
   }, [xp, getLevel])
 
   // --- AI Study Generation flow ---
-  const createStudySession = async (notesText) => {
+  const createStudySession = async (notesText, options = {}) => {
     setLoading(true)
     setLoadingStep("Reading Notes...")
     
@@ -245,10 +245,14 @@ export const StudyProvider = ({ children }) => {
     ]
 
     try {
-      const generatedData = await aiGenerateService(notesText)
+      const generatedData = await aiGenerateService(notesText, options)
       
-      // Save directly to MongoDB
-      const response = await axios.post("/api/sessions", generatedData)
+      // Save directly to MongoDB with originalNotes & options settings
+      const response = await axios.post("/api/sessions", {
+        ...generatedData,
+        originalNotes: notesText,
+        generationSettings: options
+      })
       const newSession = response.data
 
       setSessions(prev => [newSession, ...prev])
@@ -413,8 +417,102 @@ export const StudyProvider = ({ children }) => {
         toggleFavorite,
         renameSession,
         deleteSession,
+  const regenerateSessionSection = async (sessionId, sectionName, options = {}) => {
+    const target = sessions.find(s => s.id === sessionId)
+    if (!target) return
+
+    setLoading(true)
+    setLoadingStep(`Regenerating ${sectionName}...`)
+
+    try {
+      const response = await axios.post("/api/generate/section", {
+        content: target.originalNotes || target.title || "",
+        section: sectionName,
+        options: {
+          ...target.generationSettings,
+          ...options
+        }
+      })
+
+      const sectionData = response.data
+      const putResponse = await axios.put(`/api/sessions/${sessionId}`, sectionData)
+      const updated = putResponse.data
+
+      setSessions(prev => prev.map(s => s.id === sessionId ? updated : s))
+      if (activeSession?.id === sessionId) {
+        setActiveSession(updated)
+      }
+
+      toast.success(`${sectionName} regenerated successfully!`)
+      return updated
+    } catch (error) {
+      console.error("Section regeneration error:", error)
+      toast.error(error.response?.data?.message || `Failed to regenerate ${sectionName}.`)
+    } finally {
+      setLoading(false)
+      setLoadingStep("")
+    }
+  }
+
+  const duplicateSession = async (sessionId) => {
+    const target = sessions.find(s => s.id === sessionId)
+    if (!target) return
+
+    try {
+      const { id, _id, createdAt, updatedAt, ...rest } = target
+      const response = await axios.post("/api/sessions", {
+        ...rest,
+        title: `${rest.title} (Copy)`
+      })
+      const duplicated = response.data
+      setSessions(prev => [duplicated, ...prev])
+      toast.success("Session duplicated successfully.")
+      return duplicated
+    } catch (error) {
+      console.error("Duplication error:", error)
+      toast.error("Failed to duplicate session.")
+    }
+  }
+
+  const updateSessionDetails = async (sessionId, updatedData) => {
+    try {
+      const response = await axios.put(`/api/sessions/${sessionId}`, updatedData)
+      const updated = response.data
+      setSessions(prev => prev.map(s => s.id === sessionId ? updated : s))
+      if (activeSession?.id === sessionId) {
+        setActiveSession(updated)
+      }
+      return updated
+    } catch (error) {
+      console.error("Update session details error:", error)
+      toast.error("Failed to save updates.")
+    }
+  }
+
+  return (
+    <StudyContext.Provider
+      value={{
+        sessions,
+        activeSession,
+        setActiveSession,
+        loading,
+        loadingStep,
+        xp,
+        streak,
+        unlockedAchievements,
+        achievementsList: ACHIEVEMENTS_LIST,
+        getLevel,
+        getXPForNextLevel,
+        getXPProgress,
+        createStudySession,
+        toggleFavorite,
+        renameSession,
+        deleteSession,
         updateSessionFlashcards,
         addQuizScore,
+        regenerateSessionSection,
+        duplicateSession,
+        updateSessionDetails,
         pomodoro,
         startPomodoro,
         pausePomodoro,

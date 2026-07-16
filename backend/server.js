@@ -7,6 +7,7 @@ import { connectDB } from "./config/db.js"
 import { aiRouter } from "./routes/aiRoutes.js"
 import { authRouter } from "./routes/authRoutes.js"
 import { sessionRouter } from "./routes/sessionRoutes.js"
+import { parserRouter } from "./routes/parserRoutes.js"
 
 // Load env variables
 dotenv.config()
@@ -46,6 +47,7 @@ const limiter = rateLimit({
 // Route registrations
 app.use("/api/auth", authRouter)
 app.use("/api/sessions", sessionRouter)
+app.use("/api/parse-file", parserRouter)
 app.use("/api/generate", limiter, aiRouter)
 
 // Base Health Check
