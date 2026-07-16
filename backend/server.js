@@ -3,10 +3,16 @@ import cors from "cors"
 import helmet from "helmet"
 import rateLimit from "express-rate-limit"
 import dotenv from "dotenv"
+import { connectDB } from "./config/db.js"
 import { aiRouter } from "./routes/aiRoutes.js"
+import { authRouter } from "./routes/authRoutes.js"
+import { sessionRouter } from "./routes/sessionRoutes.js"
 
 // Load env variables
 dotenv.config()
+
+// Connect to MongoDB Database
+connectDB()
 
 const app = express()
 const PORT = process.env.PORT || 5000
@@ -38,6 +44,8 @@ const limiter = rateLimit({
 })
 
 // Route registrations
+app.use("/api/auth", authRouter)
+app.use("/api/sessions", sessionRouter)
 app.use("/api/generate", limiter, aiRouter)
 
 // Base Health Check

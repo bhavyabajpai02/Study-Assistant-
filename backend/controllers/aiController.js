@@ -15,9 +15,14 @@ const studyResponseSchema = {
         properties: {
           front: { type: "STRING" },
           back: { type: "STRING" },
-          category: { type: "STRING" }
+          topic: { type: "STRING" },
+          difficulty: { type: "STRING", enum: ["Easy", "Medium", "Hard"] },
+          tags: {
+            type: "ARRAY",
+            items: { type: "STRING" }
+          }
         },
-        required: ["front", "back", "category"]
+        required: ["front", "back", "topic", "difficulty", "tags"]
       }
     },
     quiz: {
@@ -138,6 +143,22 @@ export const generateStudyMaterial = async (req, res) => {
         message: "The AI model returned text that could not be parsed as valid JSON.",
         rawOutput: responseText
       })
+    }
+
+    // Post-process to ensure all flashcards have a unique id and proper schema fields
+    if (parsedData && Array.isArray(parsedData.flashcards)) {
+      parsedData.flashcards = parsedData.flashcards.map((fc, index) => ({
+        id: fc.id || `fc_${Math.random().toString(36).substr(2, 9)}_${Date.now()}_${index}`,
+        front: fc.front || "",
+        back: fc.back || "",
+        topic: fc.topic || fc.category || "General",
+        difficulty: fc.difficulty || "Medium",
+        tags: Array.isArray(fc.tags) ? fc.tags : [],
+        isLearned: false,
+        forRevision: false,
+        bookmarked: false,
+        favorite: false
+      }))
     }
 
     res.json(parsedData)

@@ -1,7 +1,64 @@
-import React from "react"
+import React, { useState, useRef, useEffect } from "react"
 import { useStudy } from "../../context/StudyContext"
-import { Search, Sparkles, Flame, User, LayoutDashboard, BarChart3, BookOpen } from "lucide-react"
+import { useAuth } from "../../context/AuthContext"
+import { Search, Sparkles, Flame, User, LayoutDashboard, BarChart3, BookOpen, LogOut, ChevronDown } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
+
+function ProfileDropdown() {
+  const { user, logout } = useAuth()
+  const [isOpen, setIsOpen] = useState(false)
+  const dropdownRef = useRef(null)
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  if (!user) return null
+
+  const initials = user.name
+    ? user.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
+    : "U"
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 pl-2 pr-3 py-1.5 rounded-lg text-zinc-300 hover:text-white transition-colors cursor-pointer select-none"
+      >
+        <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-[10px] font-bold text-white shadow-sm">
+          {initials}
+        </div>
+        <span className="text-xs font-semibold max-w-[100px] truncate">{user.name}</span>
+        <ChevronDown className="w-3.5 h-3.5 text-zinc-500" />
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-48 rounded-xl border border-zinc-800 bg-zinc-950 p-2 shadow-2xl z-50 flex flex-col gap-1.5 animate-fade-in">
+          <div className="px-2 py-1.5 border-b border-zinc-900">
+            <p className="text-xs font-bold text-zinc-200 truncate">{user.name}</p>
+            <p className="text-[10px] text-zinc-500 truncate mt-0.5">{user.email}</p>
+          </div>
+          <button
+            onClick={() => {
+              setIsOpen(false)
+              logout()
+            }}
+            className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs text-rose-400 hover:bg-rose-500/10 transition-colors w-full text-left cursor-pointer"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Sign Out</span>
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function Navbar() {
   const { streak, setIsCommandPaletteOpen, activeSession } = useStudy()
@@ -41,10 +98,8 @@ export default function Navbar() {
             <span>{streak}d</span>
           </div>
 
-          {/* Profile Badge */}
-          <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-300 hover:text-white transition-colors cursor-pointer">
-            <User className="w-4 h-4" />
-          </div>
+          {/* Profile Dropdown */}
+          <ProfileDropdown />
         </div>
       </header>
 

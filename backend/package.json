@@ -10,11 +10,14 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "express-rate-limit": "^7.5.0",
     "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.7.4",
     "study-assistant": "file:..",
     "zod": "^3.24.1"
   },

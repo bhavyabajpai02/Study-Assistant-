@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react"
 import { generateStudyMaterial as aiGenerateService } from "../services/ai"
+import { useAuth } from "./AuthContext"
+import axios from "axios"
 import toast from "react-hot-toast"
 
 const StudyContext = createContext(undefined)
@@ -14,33 +16,21 @@ const ACHIEVEMENTS_LIST = [
 ]
 
 export const StudyProvider = ({ children }) => {
-  // --- Core Sessions State ---
-  const [sessions, setSessions] = useState(() => {
-    const saved = localStorage.getItem("aether_study_sessions")
-    return saved ? JSON.parse(saved) : []
-  })
+  const { user, updateStats } = useAuth()
+
+  // --- Core State ---
+  const [sessions, setSessions] = useState([])
   const [activeSession, setActiveSession] = useState(null)
   
   // --- Request & Generating UI State ---
   const [loading, setLoading] = useState(false)
   const [loadingStep, setLoadingStep] = useState("")
 
-  // --- Gamification State ---
-  const [xp, setXp] = useState(() => {
-    const saved = localStorage.getItem("aether_study_xp")
-    return saved ? parseInt(saved) : 0
-  })
-  const [streak, setStreak] = useState(() => {
-    const saved = localStorage.getItem("aether_study_streak")
-    return saved ? parseInt(saved) : 0
-  })
-  const [lastActiveDate, setLastActiveDate] = useState(() => {
-    return localStorage.getItem("aether_study_last_active") || ""
-  })
-  const [unlockedAchievements, setUnlockedAchievements] = useState(() => {
-    const saved = localStorage.getItem("aether_study_achievements")
-    return saved ? JSON.parse(saved) : []
-  })
+  // --- Gamification Local Mirror State ---
+  const [xp, setXp] = useState(0)
+  const [streak, setStreak] = useState(0)
+  const [lastActiveDate, setLastActiveDate] = useState("")
+  const [unlockedAchievements, setUnlockedAchievements] = useState([])
 
   // --- Pomodoro State ---
   const [pomodoro, setPomodoro] = useState({
@@ -53,39 +43,45 @@ export const StudyProvider = ({ children }) => {
 
   // --- Command Palette State ---
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
-
-  // Timer Ref for Pomodoro ticking
   const timerRef = useRef(null)
 
-  // Sync state to LocalStorage
+  // Sync state from authenticated user profile
   useEffect(() => {
-    localStorage.setItem("aether_study_sessions", JSON.stringify(sessions))
-  }, [sessions])
+    if (user) {
+      setXp(user.xp || 0)
+      setStreak(user.streak || 0)
+      setLastActiveDate(user.lastActiveDate || "")
+      setUnlockedAchievements(user.unlockedAchievements || [])
 
-  useEffect(() => {
-    localStorage.setItem("aether_study_xp", xp.toString())
-  }, [xp])
+      // Load sessions from MongoDB
+      const loadSessions = async () => {
+        try {
+          const response = await axios.get("/api/sessions")
+          setSessions(response.data)
+        } catch (error) {
+          console.error("Failed to load sessions from DB:", error)
+        }
+      }
+      loadSessions()
+    } else {
+      // Clean states on logout
+      setSessions([])
+      setActiveSession(null)
+      setXp(0)
+      setStreak(0)
+      setLastActiveDate("")
+      setUnlockedAchievements([])
+    }
+  }, [user])
 
-  useEffect(() => {
-    localStorage.setItem("aether_study_streak", streak.toString())
-  }, [streak])
-
-  useEffect(() => {
-    localStorage.setItem("aether_study_last_active", lastActiveDate)
-  }, [lastActiveDate])
-
-  useEffect(() => {
-    localStorage.setItem("aether_study_achievements", JSON.stringify(unlockedAchievements))
-  }, [unlockedAchievements])
-
-  // --- Pomodoro Audio Notification Helper ---
+  // --- Pomodoro Audio Helper ---
   const playAlert = () => {
     try {
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)()
       const osc = audioCtx.createOscillator()
       const gain = audioCtx.createGain()
       osc.type = "sine"
-      osc.frequency.setValueAtTime(880, audioCtx.currentTime) // A5 note
+      osc.frequency.setValueAtTime(880, audioCtx.currentTime)
       gain.gain.setValueAtTime(0.1, audioCtx.currentTime)
       gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5)
       osc.connect(gain)
@@ -93,11 +89,11 @@ export const StudyProvider = ({ children }) => {
       osc.start()
       osc.stop(audioCtx.currentTime + 0.5)
     } catch (e) {
-      console.warn("Audio Context beep blocker by browser policies.")
+      console.warn("Audio Context beep blocked by browser policies.")
     }
   }
 
-  // --- Pomodoro Interval Tick ---
+  // --- Pomodoro Tick ---
   useEffect(() => {
     if (pomodoro.isActive) {
       timerRef.current = setInterval(() => {
@@ -109,12 +105,11 @@ export const StudyProvider = ({ children }) => {
             let nextMode = "work"
             let nextDuration = 25 * 60
             let nextCycles = prev.cyclesCompleted
-
+ 
             if (prev.mode === "work") {
               nextCycles += 1
               toast.success("Focus block complete! Take a break.")
-              // Reward focus XP
-              setXp(x => x + 150)
+              awardXP(150)
               triggerAchievement("pomodoro-king")
 
               if (nextCycles % 4 === 0) {
@@ -150,9 +145,77 @@ export const StudyProvider = ({ children }) => {
     }
   }, [pomodoro.isActive])
 
+  // --- Gamification Helper Functions ---
+  const awardXP = useCallback(async (amount) => {
+    if (!user) return
+    const nextXp = xp + amount
+    setXp(nextXp)
+    await updateStats({ xp: nextXp })
+  }, [user, xp, updateStats])
+
+  const triggerAchievement = useCallback(async (id) => {
+    if (!user || unlockedAchievements.includes(id)) return
+
+    const achievement = ACHIEVEMENTS_LIST.find(a => a.id === id)
+    if (achievement) {
+      toast((t) => (
+        <span className="flex items-center gap-3">
+          <span className="text-2xl">{achievement.icon}</span>
+          <div>
+            <p className="font-semibold text-zinc-100">Achievement Unlocked!</p>
+            <p className="text-xs text-zinc-400 font-bold">{achievement.title} (+{achievement.xpReward} XP)</p>
+          </div>
+        </span>
+      ), {
+        duration: 4000,
+        style: {
+          background: "#18181b",
+          color: "#fff",
+          border: "1px solid #27272a"
+        }
+      })
+      
+      const nextAchievements = [...unlockedAchievements, id]
+      const nextXp = xp + achievement.xpReward
+      setXp(nextXp)
+      setUnlockedAchievements(nextAchievements)
+      await updateStats({ xp: nextXp, unlockedAchievements: nextAchievements })
+    }
+  }, [user, unlockedAchievements, xp, updateStats])
+
+  const updateStreakAndActive = useCallback(async () => {
+    if (!user) return
+    const todayStr = new Date().toDateString()
+    if (lastActiveDate === todayStr) return
+
+    let nextStreak = streak
+    if (!lastActiveDate) {
+      nextStreak = 1
+      toast.success("New study streak started! Let's maintain it. 📝")
+    } else {
+      const yesterday = new Date()
+      yesterday.setDate(yesterday.getDate() - 1)
+      const yesterdayStr = yesterday.toDateString()
+
+      if (lastActiveDate === yesterdayStr) {
+        nextStreak = streak + 1
+        toast.success(`Study streak increased to ${nextStreak} days! 🔥`)
+        if (nextStreak >= 3) {
+          triggerAchievement("streak-3")
+        }
+      } else {
+        nextStreak = 1
+        toast.success("New study streak started! Let's maintain it. 📝")
+      }
+    }
+
+    setStreak(nextStreak)
+    setLastActiveDate(todayStr)
+    await updateStats({ streak: nextStreak, lastActiveDate: todayStr })
+  }, [user, lastActiveDate, streak, updateStats, triggerAchievement])
+
   // --- XP Level Calculator ---
   const getLevel = useCallback(() => {
-    // Standard quadratic curve: lvl = floor(sqrt(xp / 100)) + 1
     return Math.floor(Math.sqrt(xp / 100)) + 1
   }, [xp])
 
@@ -169,89 +232,11 @@ export const StudyProvider = ({ children }) => {
     return Math.max(0, Math.min(100, progress))
   }, [xp, getLevel])
 
-  // --- Streak Manager ---
-  const updateStreak = useCallback(() => {
-    const todayStr = new Date().toDateString()
-    if (lastActiveDate === todayStr) return // Already updated today
-
-    if (!lastActiveDate) {
-      setStreak(1)
-      setLastActiveDate(todayStr)
-    } else {
-      const yesterday = new Date()
-      yesterday.setDate(yesterday.getDate() - 1)
-      const yesterdayStr = yesterday.toDateString()
-
-      if (lastActiveDate === yesterdayStr) {
-        const nextStreak = streak + 1
-        setStreak(nextStreak)
-        setLastActiveDate(todayStr)
-        toast.success(`Study streak increased to ${nextStreak} days! 🔥`)
-
-        if (nextStreak >= 3) {
-          triggerAchievement("streak-3")
-        }
-      } else {
-        // Streak broken
-        setStreak(1)
-        setLastActiveDate(todayStr)
-        toast.success("New study streak started! Let's maintain it. 📝")
-      }
-    }
-  }, [lastActiveDate, streak])
-
-  // --- Achievement Trigger Helper ---
-  const triggerAchievement = useCallback((id) => {
-    setUnlockedAchievements(prev => {
-      if (prev.includes(id)) return prev
-
-      const achievement = ACHIEVEMENTS_LIST.find(a => a.id === id)
-      if (achievement) {
-        toast((t) => (
-          <span className="flex items-center gap-3">
-            <span className="text-2xl">{achievement.icon}</span>
-            <div>
-              <p className="font-semibold text-zinc-100">Achievement Unlocked!</p>
-              <p className="text-xs text-zinc-400 font-bold">{achievement.title} (+{achievement.xpReward} XP)</p>
-            </div>
-          </span>
-        ), {
-          duration: 4000,
-          style: {
-            background: "#18181b",
-            color: "#fff",
-            border: "1px solid #27272a"
-          }
-        })
-        setXp(x => x + achievement.xpReward)
-        return [...prev, id]
-      }
-      return prev
-    })
-  }, [])
-
-  // Check count-based achievements
-  useEffect(() => {
-    if (sessions.length >= 1) {
-      triggerAchievement("first-session")
-    }
-    if (sessions.length >= 5) {
-      triggerAchievement("five-sessions")
-    }
-
-    // Check flashcards bookmark count
-    const totalBookmarks = sessions.reduce((acc, s) => acc + (s.bookmarkedCards?.length || 0), 0)
-    if (totalBookmarks >= 5) {
-      triggerAchievement("bookmark-master")
-    }
-  }, [sessions, triggerAchievement])
-
   // --- AI Study Generation flow ---
   const createStudySession = async (notesText) => {
     setLoading(true)
     setLoadingStep("Reading Notes...")
     
-    // Simulate natural steps for dramatic loading transitions
     const stepTimers = [
       setTimeout(() => setLoadingStep("Extracting Core Concepts..."), 1200),
       setTimeout(() => setLoadingStep("Generating Flashcards..."), 2600),
@@ -262,20 +247,22 @@ export const StudyProvider = ({ children }) => {
     try {
       const generatedData = await aiGenerateService(notesText)
       
-      const newSession = {
-        ...generatedData,
-        id: `session_${Date.now()}`,
-        createdAt: new Date().toISOString(),
-        isFavorite: false,
-        masteredCards: [],
-        bookmarkedCards: [],
-        quizScores: []
-      }
+      // Save directly to MongoDB
+      const response = await axios.post("/api/sessions", generatedData)
+      const newSession = response.data
 
       setSessions(prev => [newSession, ...prev])
       setActiveSession(newSession)
-      updateStreak()
-      setXp(x => x + 100) // Reward session creation XP
+      
+      updateStreakAndActive()
+      awardXP(100) // Reward session creation XP
+
+      // Check achievements
+      if (sessions.length === 0) {
+        triggerAchievement("first-session")
+      } else if (sessions.length + 1 >= 5) {
+        triggerAchievement("five-sessions")
+      }
       
       toast.success("Study materials prepared successfully!")
       return newSession
@@ -292,114 +279,113 @@ export const StudyProvider = ({ children }) => {
     }
   }
 
-  // --- Study Interactions ---
-  const toggleFavorite = (id) => {
-    setSessions(prev =>
-      prev.map(s => (s.id === id ? { ...s, isFavorite: !s.isFavorite } : s))
-    )
-    if (activeSession?.id === id) {
-      setActiveSession(prev => ({ ...prev, isFavorite: !prev.isFavorite }))
+  // --- Study Interactions / CRUD ---
+  const toggleFavorite = async (id) => {
+    const target = sessions.find(s => s.id === id)
+    if (!target) return
+
+    const nextFav = !target.isFavorite
+    try {
+      const response = await axios.put(`/api/sessions/${id}`, { isFavorite: nextFav })
+      const updated = response.data
+
+      setSessions(prev => prev.map(s => s.id === id ? updated : s))
+      if (activeSession?.id === id) {
+        setActiveSession(updated)
+      }
+    } catch (error) {
+      console.error("Favorite toggle error:", error)
+      toast.error("Failed to save changes.")
     }
   }
 
-  const renameSession = (id, newTitle) => {
+  const renameSession = async (id, newTitle) => {
     if (!newTitle.trim()) return
-    setSessions(prev =>
-      prev.map(s => (s.id === id ? { ...s, title: newTitle } : s))
-    )
-    if (activeSession?.id === id) {
-      setActiveSession(prev => ({ ...prev, title: newTitle }))
-    }
-    toast.success("Session renamed.")
-  }
+    try {
+      const response = await axios.put(`/api/sessions/${id}`, { title: newTitle })
+      const updated = response.data
 
-  const deleteSession = (id) => {
-    setSessions(prev => prev.filter(s => s.id !== id))
-    if (activeSession?.id === id) {
-      setActiveSession(null)
-    }
-    toast.success("Study session deleted.")
-  }
-
-  const toggleBookmarkCard = (sessionId, cardIndex) => {
-    setSessions(prev =>
-      prev.map(s => {
-        if (s.id === sessionId) {
-          const list = s.bookmarkedCards || []
-          const next = list.includes(cardIndex)
-            ? list.filter(i => i !== cardIndex)
-            : [...list, cardIndex]
-          return { ...s, bookmarkedCards: next }
-        }
-        return s
-      })
-    )
-
-    if (activeSession?.id === sessionId) {
-      setActiveSession(prev => {
-        const list = prev.bookmarkedCards || []
-        const next = list.includes(cardIndex)
-          ? list.filter(i => i !== cardIndex)
-          : [...list, cardIndex]
-        return { ...prev, bookmarkedCards: next }
-      })
-    }
-    setXp(x => x + 10) // Small reward for bookmark interaction
-  }
-
-  const toggleMasteredCard = (sessionId, cardIndex) => {
-    setSessions(prev =>
-      prev.map(s => {
-        if (s.id === sessionId) {
-          const list = s.masteredCards || []
-          const next = list.includes(cardIndex)
-            ? list.filter(i => i !== cardIndex)
-            : [...list, cardIndex]
-          return { ...s, masteredCards: next }
-        }
-        return s
-      })
-    )
-
-    if (activeSession?.id === sessionId) {
-      setActiveSession(prev => {
-        const list = prev.masteredCards || []
-        const next = list.includes(cardIndex)
-          ? list.filter(i => i !== cardIndex)
-          : [...list, cardIndex]
-        return { ...prev, masteredCards: next }
-      })
+      setSessions(prev => prev.map(s => s.id === id ? updated : s))
+      if (activeSession?.id === id) {
+        setActiveSession(updated)
+      }
+      toast.success("Session renamed.")
+    } catch (error) {
+      console.error("Rename error:", error)
+      toast.error("Failed to rename session.")
     }
   }
 
-  const addQuizScore = (sessionId, scorePercent) => {
-    setSessions(prev =>
-      prev.map(s => {
-        if (s.id === sessionId) {
-          const list = s.quizScores || []
-          return { ...s, quizScores: [...list, scorePercent] }
-        }
-        return s
-      })
-    )
-
-    if (activeSession?.id === sessionId) {
-      setActiveSession(prev => {
-        const list = prev.quizScores || []
-        return { ...prev, quizScores: [...list, scorePercent] }
-      })
+  const deleteSession = async (id) => {
+    try {
+      await axios.delete(`/api/sessions/${id}`)
+      setSessions(prev => prev.filter(s => s.id !== id))
+      if (activeSession?.id === id) {
+        setActiveSession(null)
+      }
+      toast.success("Study session deleted.")
+    } catch (error) {
+      console.error("Delete session error:", error)
+      toast.error("Failed to delete session.")
     }
-
-    if (scorePercent === 100) {
-      triggerAchievement("quiz-perfect")
-      setXp(x => x + 200)
-    } else {
-      setXp(x => x + 50) // Basic XP for completing quiz
-    }
-    updateStreak()
   }
 
-  // --- Pomodoro Widget controls ---
+  // Unified flashcard update save method
+  const updateSessionFlashcards = async (sessionId, updatedFlashcards) => {
+    try {
+      const response = await axios.put(`/api/sessions/${sessionId}`, {
+        flashcards: updatedFlashcards
+      })
+      const updated = response.data
+
+      setSessions(prev => prev.map(s => s.id === sessionId ? updated : s))
+      if (activeSession?.id === sessionId) {
+        setActiveSession(updated)
+      }
+
+      // Check bookmark count achievements
+      const totalBookmarks = [updated, ...sessions.filter(s => s.id !== sessionId)].reduce(
+        (acc, s) => acc + (s.flashcards?.filter(f => f.bookmarked).length || 0), 0
+      )
+      if (totalBookmarks >= 5) {
+        triggerAchievement("bookmark-master")
+      }
+
+      return updated
+    } catch (error) {
+      console.error("Save flashcards error:", error)
+      toast.error("Failed to sync flashcards with server.")
+    }
+  }
+
+  const addQuizScore = async (sessionId, scorePercent) => {
+    const target = sessions.find(s => s.id === sessionId)
+    if (!target) return
+
+    const scores = [...(target.quizScores || []), scorePercent]
+    try {
+      const response = await axios.put(`/api/sessions/${sessionId}`, { quizScores: scores })
+      const updated = response.data
+
+      setSessions(prev => prev.map(s => s.id === sessionId ? updated : s))
+      if (activeSession?.id === sessionId) {
+        setActiveSession(updated)
+      }
+
+      if (scorePercent === 100) {
+        triggerAchievement("quiz-perfect")
+        awardXP(200)
+      } else {
+        awardXP(50)
+      }
+      updateStreakAndActive()
+    } catch (error) {
+      console.error("Quiz score save error:", error)
+      toast.error("Failed to save quiz scores.")
+    }
+  }
+
+  // --- Pomodoro controls ---
   const startPomodoro = () => setPomodoro(prev => ({ ...prev, isActive: true }))
   const pausePomodoro = () => setPomodoro(prev => ({ ...prev, isActive: false }))
   const resetPomodoro = () => setPomodoro(prev => ({ ...prev, isActive: false, timeLeft: prev.duration }))
@@ -427,8 +413,7 @@ export const StudyProvider = ({ children }) => {
         toggleFavorite,
         renameSession,
         deleteSession,
-        toggleBookmarkCard,
-        toggleMasteredCard,
+        updateSessionFlashcards,
         addQuizScore,
         pomodoro,
         startPomodoro,

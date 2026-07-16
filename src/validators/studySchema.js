@@ -1,9 +1,17 @@
 import { z } from "zod"
 
 export const flashcardSchema = z.object({
+  id: z.string().optional(),
   front: z.string().min(1, "Question is required"),
   back: z.string().min(1, "Answer is required"),
-  category: z.string().min(1, "Category is required")
+  category: z.string().optional(),
+  topic: z.string().optional(),
+  difficulty: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  isLearned: z.boolean().optional(),
+  forRevision: z.boolean().optional(),
+  bookmarked: z.boolean().optional(),
+  favorite: z.boolean().optional()
 })
 
 export const quizQuestionSchema = z.object({
