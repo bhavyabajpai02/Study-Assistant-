@@ -22,7 +22,7 @@ if (!apiKey || apiKey.trim() === "") {
 const genAI = new GoogleGenerativeAI(apiKey)
 
 try {
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
+  const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-lite" })
   console.log("📡 Sending test request to Google AI servers...")
   
   const result = await model.generateContent("Respond with exactly: ✓ Gemini is connected successfully!")

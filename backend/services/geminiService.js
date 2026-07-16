@@ -13,7 +13,7 @@ export const initializeGemini = () => {
   if (!genAI) {
     genAI = new GoogleGenerativeAI(apiKey)
     modelInstance = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
+      model: "gemini-3.1-flash-lite",
       systemInstruction: "You are a senior academic tutor and learning experience designer. Your goal is to dissect complex lecture notes, books, or ideas into extremely structured study aids."
     })
   }
