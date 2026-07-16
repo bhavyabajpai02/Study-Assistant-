@@ -3,6 +3,7 @@ import cors from "cors"
 import helmet from "helmet"
 import rateLimit from "express-rate-limit"
 import dotenv from "dotenv"
+import mongoose from "mongoose"
 import { connectDB } from "./config/db.js"
 import { aiRouter } from "./routes/aiRoutes.js"
 import { authRouter } from "./routes/authRoutes.js"
@@ -42,6 +43,21 @@ const limiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+})
+
+// Database connectivity validation middleware
+app.use((req, res, next) => {
+  // If request is base health check or base router check, skip
+  if (req.path === "/api/health" || req.path === "/") {
+    return next()
+  }
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({
+      error: "Service Unavailable",
+      message: "Database connection is offline. Please try again shortly."
+    })
+  }
+  next()
 })
 
 // Route registrations

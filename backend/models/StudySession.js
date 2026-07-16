@@ -145,4 +145,6 @@ const studySessionSchema = new mongoose.Schema({
   timestamps: true
 })
 
+studySessionSchema.index({ userId: 1 })
+
 export const StudySession = mongoose.model("StudySession", studySessionSchema)

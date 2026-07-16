@@ -398,25 +398,6 @@ export const StudyProvider = ({ children }) => {
     setPomodoro(prev => ({ ...prev, isActive: false, duration: sec, timeLeft: sec, mode }))
   }
 
-  return (
-    <StudyContext.Provider
-      value={{
-        sessions,
-        activeSession,
-        setActiveSession,
-        loading,
-        loadingStep,
-        xp,
-        streak,
-        unlockedAchievements,
-        achievementsList: ACHIEVEMENTS_LIST,
-        getLevel,
-        getXPForNextLevel,
-        getXPProgress,
-        createStudySession,
-        toggleFavorite,
-        renameSession,
-        deleteSession,
   const regenerateSessionSection = async (sessionId, sectionName, options = {}) => {
     const target = sessions.find(s => s.id === sessionId)
     if (!target) return

@@ -1,5 +1,7 @@
-import pdfParse from "pdf-parse"
-import mammoth from "mammoth"
+import { createRequire } from "module"
+const require = createRequire(import.meta.url)
+const pdfParse = require("pdf-parse")
+const mammoth = require("mammoth")
 
 // @desc    Extract text from uploaded PDF, DOCX, TXT, or Markdown file
 // @route   POST /api/parse-file

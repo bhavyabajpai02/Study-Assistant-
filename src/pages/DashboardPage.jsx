@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react"
 import { useStudy } from "../context/StudyContext"
 import { useAuth } from "../context/AuthContext"
-import SessionList from "../components/dashboard/SessionList"
 import LoadingSphere from "../components/ui/3d/LoadingSphere"
 import FlashcardContainer from "../components/flashcards/FlashcardContainer"
 import QuizContainer from "../components/quiz/QuizContainer"
@@ -20,19 +19,13 @@ import {
   Share2,
   Trash2,
   Edit,
-  FolderOpen,
   Calendar,
   Compass,
   FileQuestion,
-  HelpCircle,
-  Lightbulb,
   UploadCloud,
-  Loader,
-  Play,
   RotateCw,
   FolderPlus,
   Save,
-  Check,
   Star,
   Printer,
   ChevronDown

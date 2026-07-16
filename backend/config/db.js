@@ -16,7 +16,7 @@ export const connectDB = async () => {
     await seedDemoUser()
   } catch (error) {
     console.error(`❌ MongoDB Connection Error: ${error.message}`)
-    process.exit(1)
+    console.warn("⚠️ Database offline. The server remains online, but database-dependent API requests will report 503 Service Unavailable.")
   }
 }
 
@@ -42,7 +42,11 @@ const seedDemoUser = async () => {
       await demoUser.save()
       console.log("✨ Demo Account Seeded Successfully!")
     } else {
-      console.log("☑️ Demo Account already exists.")
+      console.log("☑️ Demo Account already exists. Ensuring correct password...")
+      const hashedPassword = await bcrypt.hash("Demo@123", 10)
+      existingDemo.password = hashedPassword
+      await existingDemo.save()
+      console.log("✨ Demo Account Password Synchronized!")
     }
   } catch (err) {
     console.error(`⚠️ Demo Seeder Error: ${err.message}`)
