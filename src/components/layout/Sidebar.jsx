@@ -6,6 +6,7 @@ import {
   BookOpen, 
   LayoutDashboard, 
   BarChart3, 
+  Bot,
   Sparkles, 
   Flame, 
   Zap, 
@@ -31,6 +32,7 @@ export default function Sidebar() {
 
   const navLinks = [
     { to: "/dashboard", label: "Workspace", icon: LayoutDashboard },
+    { to: "/assistant", label: "AI Assistant", icon: Bot },
     { to: "/analytics", label: "Analytics", icon: BarChart3 },
   ]
 

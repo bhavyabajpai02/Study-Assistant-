@@ -11,6 +11,7 @@ import { aiRouter } from "./routes/aiRoutes.js"
 import { authRouter } from "./routes/authRoutes.js"
 import { sessionRouter } from "./routes/sessionRoutes.js"
 import { parserRouter } from "./routes/parserRoutes.js"
+import { assistantRouter } from "./routes/assistantRoutes.js"
 import { isGeminiConfigured } from "./services/geminiService.js"
 
 // Resolve absolute path to .env in backend directory
@@ -93,6 +94,7 @@ app.use("/api/auth", authRouter)
 app.use("/api/sessions", sessionRouter)
 app.use("/api/parse-file", parserRouter)
 app.use("/api/generate", limiter, aiRouter)
+app.use("/api/assistant", limiter, assistantRouter)
 
 // Serve static frontend build files if they exist (Production mode)
 const distPath = path.join(__dirname, "../dist")

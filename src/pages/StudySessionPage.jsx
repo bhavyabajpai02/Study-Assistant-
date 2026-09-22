@@ -4,6 +4,7 @@ import { useStudy } from "../context/StudyContext"
 import FlashcardContainer from "../components/flashcards/FlashcardContainer"
 import QuizContainer from "../components/quiz/QuizContainer"
 import AnalyticsView from "../components/analytics/AnalyticsView"
+import TextSelectionToolbar from "../components/study/TextSelectionToolbar"
 import { 
   BookOpen, 
   Layers, 
@@ -15,7 +16,9 @@ import {
   ArrowLeft,
   Calendar,
   Compass,
-  AlertTriangle
+  AlertTriangle,
+  Bot,
+  Sparkles
 } from "lucide-react"
 
 export default function StudySessionPage() {
@@ -71,6 +74,18 @@ export default function StudySessionPage() {
     downloadAnchor.remove()
   }
 
+  const handleAskAIAboutMaterial = () => {
+    navigate("/assistant", {
+      state: {
+        context: {
+          sessionId: session.id,
+          topic: session.title,
+          studyMaterial: session.summary
+        }
+      }
+    })
+  }
+
   const diffBadges = {
     Easy: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
     Medium: "bg-blue-500/10 text-blue-400 border-blue-500/20",
@@ -81,7 +96,7 @@ export default function StudySessionPage() {
     <div className="flex-1 flex flex-col p-6 md:p-8 gap-8 overflow-y-auto print-area select-none">
       
       {/* --- TOP BACK & UTILITIES ROW (no-print helper) --- */}
-      <section className="flex justify-between items-center no-print">
+      <section className="flex justify-between items-center no-print flex-wrap gap-3">
         <Link
           to="/dashboard"
           className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 font-bold transition-colors"
@@ -90,7 +105,16 @@ export default function StudySessionPage() {
           <span>Back to Workspace</span>
         </Link>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap items-center">
+          {/* Ask AI about this material trigger */}
+          <button
+            onClick={handleAskAIAboutMaterial}
+            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-md shadow-blue-600/20 flex items-center gap-1.5 cursor-pointer active:scale-95"
+          >
+            <Bot className="w-4 h-4" />
+            <span>Ask AI About This Material</span>
+          </button>
+
           {/* Favorite Toggle */}
           <button
             onClick={() => toggleFavorite(session.id)}
@@ -176,61 +200,63 @@ export default function StudySessionPage() {
       <section className="flex-1 min-h-[300px]">
         {/* TAB 1: Study Notes / Overview */}
         {activeTab === "summary" && (
-          <div className="flex flex-col gap-8 max-w-4xl animate-fade-in font-sans">
-            {/* Key Concepts Grid */}
-            <div className="flex flex-col gap-4">
-              <h3 className="text-zinc-200 font-extrabold text-sm uppercase tracking-wider flex items-center gap-1.5">
-                <Compass className="w-4.5 h-4.5 text-blue-400" /> Key Concepts & Definitions
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {session.keyPoints.map((kp, idx) => (
-                  <div 
-                    key={idx} 
-                    className="glass-panel border border-zinc-850 p-4 rounded-xl flex flex-col gap-2 relative overflow-hidden"
-                  >
-                    <span className="absolute right-3 top-3 text-[10px] text-zinc-600 font-mono font-bold">#{idx + 1}</span>
-                    <h4 className="text-zinc-100 font-extrabold text-sm tracking-tight">{kp.concept}</h4>
-                    <p className="text-zinc-400 text-xs font-light leading-relaxed">{kp.definition}</p>
-                    
-                    {kp.formula && (
-                      <div className="bg-zinc-950 border border-zinc-900 px-3 py-2 rounded-lg font-mono text-[10px] text-blue-400 mt-1 select-all break-all">
-                        {kp.formula}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Objectives and Revision Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-zinc-900/60 pt-6">
-              {/* Learning Objectives */}
-              <div className="flex flex-col gap-3">
-                <h4 className="text-zinc-200 font-bold text-xs uppercase tracking-wider">Mastery Goals</h4>
-                <ul className="flex flex-col gap-2">
-                  {session.learningObjectives.map((obj, idx) => (
-                    <li key={idx} className="flex gap-2 items-start text-xs text-zinc-400 font-light leading-relaxed">
-                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5 flex-shrink-0" />
-                      <span>{obj}</span>
-                    </li>
+          <TextSelectionToolbar sessionTitle={session.title} sessionId={session.id}>
+            <div className="flex flex-col gap-8 max-w-4xl animate-fade-in font-sans">
+              {/* Key Concepts Grid */}
+              <div className="flex flex-col gap-4">
+                <h3 className="text-zinc-200 font-extrabold text-sm uppercase tracking-wider flex items-center gap-1.5">
+                  <Compass className="w-4.5 h-4.5 text-blue-400" /> Key Concepts & Definitions
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {session.keyPoints.map((kp, idx) => (
+                    <div 
+                      key={idx} 
+                      className="glass-panel border border-zinc-850 p-4 rounded-xl flex flex-col gap-2 relative overflow-hidden"
+                    >
+                      <span className="absolute right-3 top-3 text-[10px] text-zinc-600 font-mono font-bold">#{idx + 1}</span>
+                      <h4 className="text-zinc-100 font-extrabold text-sm tracking-tight">{kp.concept}</h4>
+                      <p className="text-zinc-400 text-xs font-light leading-relaxed">{kp.definition}</p>
+                      
+                      {kp.formula && (
+                        <div className="bg-zinc-950 border border-zinc-900 px-3 py-2 rounded-lg font-mono text-[10px] text-blue-400 mt-1 select-all break-all">
+                          {kp.formula}
+                        </div>
+                      )}
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
 
-              {/* Revision Tips */}
-              <div className="flex flex-col gap-3">
-                <h4 className="text-zinc-200 font-bold text-xs uppercase tracking-wider">Revision Strategies</h4>
-                <ul className="flex flex-col gap-2">
-                  {session.revisionTips.map((tip, idx) => (
-                    <li key={idx} className="flex gap-2 items-start text-xs text-zinc-400 font-light leading-relaxed">
-                      <span className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-1.5 flex-shrink-0" />
-                      <span>{tip}</span>
-                    </li>
-                  ))}
-                </ul>
+              {/* Objectives and Revision Row */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-zinc-900/60 pt-6">
+                {/* Learning Objectives */}
+                <div className="flex flex-col gap-3">
+                  <h4 className="text-zinc-200 font-bold text-xs uppercase tracking-wider">Mastery Goals</h4>
+                  <ul className="flex flex-col gap-2">
+                    {session.learningObjectives.map((obj, idx) => (
+                      <li key={idx} className="flex gap-2 items-start text-xs text-zinc-400 font-light leading-relaxed">
+                        <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5 flex-shrink-0" />
+                        <span>{obj}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Revision Tips */}
+                <div className="flex flex-col gap-3">
+                  <h4 className="text-zinc-200 font-bold text-xs uppercase tracking-wider">Revision Strategies</h4>
+                  <ul className="flex flex-col gap-2">
+                    {session.revisionTips.map((tip, idx) => (
+                      <li key={idx} className="flex gap-2 items-start text-xs text-zinc-400 font-light leading-relaxed">
+                        <span className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-1.5 flex-shrink-0" />
+                        <span>{tip}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
             </div>
-          </div>
+          </TextSelectionToolbar>
         )}
 
         {/* TAB 2: Flashcards Deck */}

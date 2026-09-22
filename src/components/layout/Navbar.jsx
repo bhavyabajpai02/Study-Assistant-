@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react"
 import { useStudy } from "../../context/StudyContext"
 import { useAuth } from "../../context/AuthContext"
-import { Search, Sparkles, Flame, User, LayoutDashboard, BarChart3, BookOpen, LogOut, ChevronDown } from "lucide-react"
+import { Search, Sparkles, Flame, User, LayoutDashboard, BarChart3, BookOpen, LogOut, ChevronDown, Bot } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
 
 function ProfileDropdown() {
@@ -74,7 +74,15 @@ export default function Navbar() {
             <Sparkles className="w-4 h-4 text-white" />
           </div>
           <span className="font-semibold text-sm text-zinc-300 hidden md:inline bg-zinc-900 border border-zinc-800 px-2.5 py-1 rounded-lg">
-            {location.pathname === "/dashboard" ? "Workspace Hub" : location.pathname === "/analytics" ? "Performance Analytics" : activeSession ? `Session: ${activeSession.title}` : "Aether Portal"}
+            {location.pathname === "/dashboard"
+              ? "Workspace Hub"
+              : location.pathname === "/assistant"
+              ? "AI Study Tutor"
+              : location.pathname === "/analytics"
+              ? "Performance Analytics"
+              : activeSession
+              ? `Session: ${activeSession.title}`
+              : "Aether Portal"}
           </span>
         </div>
 
@@ -113,6 +121,16 @@ export default function Navbar() {
         >
           <LayoutDashboard className="w-5 h-5" />
           <span>Dashboard</span>
+        </Link>
+
+        <Link
+          to="/assistant"
+          className={`flex flex-col items-center gap-1 text-[10px] font-semibold transition-colors ${
+            location.pathname === "/assistant" ? "text-blue-400" : "text-zinc-500 hover:text-zinc-300"
+          }`}
+        >
+          <Bot className="w-5 h-5" />
+          <span>AI Tutor</span>
         </Link>
 
         {activeSession && (

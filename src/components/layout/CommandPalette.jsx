@@ -11,6 +11,7 @@ import {
   Flame, 
   LayoutDashboard, 
   BarChart3, 
+  Bot,
   X,
   FileText
 } from "lucide-react"
@@ -56,6 +57,13 @@ export default function CommandPalette() {
       category: "Navigation",
       icon: LayoutDashboard,
       action: () => navigate("/dashboard")
+    },
+    {
+      id: "go-assistant",
+      title: "Ask AI Study Tutor",
+      category: "AI Tutor",
+      icon: Bot,
+      action: () => navigate("/assistant")
     },
     {
       id: "go-analytics",

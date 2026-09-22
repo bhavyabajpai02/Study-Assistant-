@@ -11,6 +11,7 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage"
 import DashboardPage from "./pages/DashboardPage"
 import AnalyticsPage from "./pages/AnalyticsPage"
 import StudySessionPage from "./pages/StudySessionPage"
+import AIAssistantPage from "./pages/AIAssistantPage"
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
           {/* Protected Dashboard Workspace Routes */}
           <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/assistant" element={<AIAssistantPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/session/:id" element={<StudySessionPage />} />
           </Route>

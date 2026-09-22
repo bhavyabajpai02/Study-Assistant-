@@ -317,3 +317,116 @@ export const generateStudySection = async (content, section, options = {}) => {
     throw error
   }
 }
+
+// Interactive AI Tutor Chat Service
+export const chatWithTutor = async (history = [], userMessage = "", studyContext = null) => {
+  const model = initializeGemini()
+  if (!model || !genAI) {
+    throw new Error("AI_SERVICES_UNAVAILABLE")
+  }
+
+  const systemInstruction = `You are a warm, encouraging, highly skilled AI Study Tutor inside the Aether Study platform.
+Your goals:
+1. Explain concepts clearly and conversationally, adapting to the user's level.
+2. Prefer simple, intuitive explanations first (e.g., real-world analogies), followed by structured technical details if helpful.
+3. Provide concrete code or practical examples when relevant.
+4. Keep markdown responses clean and easy to read using headings, bullet points, bold text, and syntax-highlighted code blocks.
+5. End responses with a brief, encouraging follow-up or question to check understanding when appropriate.
+
+IMPORTANT CONTEXTUAL & ANTI-HALLUCINATION RULES:
+- When Study Material / Topic Context is provided, prioritize answering within the scope of that material.
+- If a question cannot be strictly answered from the study context, use your general academic knowledge, but state clearly: "Based on general academic knowledge beyond your notes..."
+- Do not fabricate facts, fake references, or hallucinate definitions.`
+
+  // Prepare study context header if present
+  let contextHeader = ""
+  if (studyContext && typeof studyContext === "object") {
+    if (studyContext.topic || studyContext.studyMaterial) {
+      contextHeader = `[ACTIVE STUDY CONTEXT]\n`
+      if (studyContext.topic) contextHeader += `Topic: ${studyContext.topic}\n`
+      if (studyContext.studyMaterial) contextHeader += `Material Summary/Notes: ${String(studyContext.studyMaterial).slice(0, 2000)}\n`
+      contextHeader += `[END STUDY CONTEXT]\n\n`
+    }
+  } else if (typeof studyContext === "string" && studyContext.trim()) {
+    contextHeader = `[ACTIVE STUDY CONTEXT]\nTopic/Material: ${studyContext.trim()}\n[END STUDY CONTEXT]\n\n`
+  }
+
+  // Format and sanitize history into strictly alternating [user, model, user, model, ..., user]
+  const formattedContents = []
+
+  if (Array.isArray(history)) {
+    const recentHistory = history.slice(-10)
+    recentHistory.forEach(msg => {
+      if (msg && msg.content && typeof msg.content === "string" && msg.content.trim()) {
+        const role = msg.role === "assistant" || msg.role === "model" ? "model" : "user"
+        const text = msg.content.trim()
+
+        if (formattedContents.length === 0) {
+          if (role === "user") {
+            formattedContents.push({ role: "user", parts: [{ text }] })
+          }
+        } else {
+          const lastRole = formattedContents[formattedContents.length - 1].role
+          if (lastRole === role) {
+            formattedContents[formattedContents.length - 1].parts[0].text += `\n\n${text}`
+          } else {
+            formattedContents.push({ role, parts: [{ text }] })
+          }
+        }
+      }
+    })
+  }
+
+  // Append user prompt (with context header if present)
+  const promptText = contextHeader ? `${contextHeader}User Question: ${userMessage}` : userMessage
+
+  if (formattedContents.length === 0) {
+    formattedContents.push({ role: "user", parts: [{ text: promptText }] })
+  } else {
+    const lastRole = formattedContents[formattedContents.length - 1].role
+    if (lastRole === "user") {
+      formattedContents[formattedContents.length - 1].parts[0].text += `\n\n${promptText}`
+    } else {
+      formattedContents.push({ role: "user", parts: [{ text: promptText }] })
+    }
+  }
+
+  const fetchAction = async () => {
+    // Model fallback sequence
+    const modelCandidates = ["gemini-3.1-flash-lite", "gemini-1.5-flash", "gemini-2.0-flash"]
+    let lastError = null
+
+    for (const modelName of modelCandidates) {
+      try {
+        const tutorModel = genAI.getGenerativeModel({
+          model: modelName,
+          systemInstruction
+        })
+
+        const result = await tutorModel.generateContent({
+          contents: formattedContents,
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 2048
+          }
+        })
+
+        const responseText = result.response?.text()
+        if (responseText) return responseText
+      } catch (err) {
+        lastError = err
+        console.warn(`⚠️ Model ${modelName} failed (${err.message}). Trying fallback...`)
+      }
+    }
+
+    throw lastError || new Error("Empty response received from Gemini.")
+  }
+
+  try {
+    return await executeWithRetry(fetchAction)
+  } catch (error) {
+    console.error("Gemini chatWithTutor failed:", error)
+    throw error
+  }
+}
+
